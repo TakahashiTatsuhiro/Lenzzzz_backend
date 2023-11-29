@@ -56,6 +56,50 @@ app.post('/registrations', registrationFunc);
 app.post('/login', loginFunc);
 //End : API
 
+// AWSセット--------------------------
+// const AWS = require('aws-sdk');
+
+// v3
+// import { S3Client } from '@aws-sdk/client-s3';
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+
+app.get('/aws3', async (req, res) => {
+  try {
+    console.log('AWSきてる？？？');
+
+    const s3 = new S3Client({
+      region: 'ap-southeast-2',
+      credentials: {
+        accessKeyId: 'AKIAZN32B6E5FSNWALN7',
+        secretAccessKey: '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',
+      },
+    });
+    // const s3 = new S3Client({ region: 'ap-southeast-2' });
+
+    const params = {
+      Bucket: 'lenzzzz',
+      Key: 'bousaisyoku.jpeg',
+    };
+
+    // console.log(s3);
+
+    const command = new GetObjectCommand(params);
+
+    const result = await s3.send(command);
+
+    // レスポンスに取得したオブジェクトの内容を直接送信
+    // res.send(result.Body);
+    console.log('result:', result);
+    res.end();
+  } catch (error) {
+    console.error('Error getting object:', error);
+    // エラーが発生した場合、エラーレスポンスを送信
+    res.status(500).send('Error getting object: ' + error.message);
+  }
+});
+
+// ----------------------------------
+
 app.listen(PORT, () => {
   console.log(`http://localhost:${PORT}`);
 });
