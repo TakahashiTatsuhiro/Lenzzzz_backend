@@ -10,6 +10,7 @@
     "seed": "knex seed:run",
     "makeSeed": "knex seed:make",
     "dev": "nodemon index.js",
+    "build":"npm install && npm run migrate && npm run seed",
     "start": "node index.js"
   },
   "keywords": [],
