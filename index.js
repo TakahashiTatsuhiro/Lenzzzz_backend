@@ -4,9 +4,12 @@ const userInfo = require('./items');
 const cors = require('cors');
 const PORT = process.env.PORT || 3000;
 app.use(express.json());
-// app.use(cors({ origin: "http://localhost:5173" })); //Need confirm to Frontend
+
+const url = process.env.DEVELOPMENT_FRONTEND_URL || process.env.PRODUCTION_FRONTEND_URL;
+app.use(cors({ origin: url })); //Need confirm to Frontend
+// app.use(cors({ origin: 'http://localhost:5173' })); //Need confirm to Frontend
 // app.use(cors({ origin: "https://lenzzzz-frontend.onrender.com" })); //Need confirm to Frontend
-app.use(cors({ origin: 'https://lenzzzz-frontend-cgi6.onrender.com' })); //Need confirm to Frontend
+// app.use(cors({ origin: 'https://lenzzzz-frontend-cgi6.onrender.com' })); //Need confirm to Frontend
 
 //Controllre Func : Start
 const userInfoFunc = async (req, res) => {
