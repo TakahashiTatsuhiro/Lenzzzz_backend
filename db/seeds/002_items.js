@@ -4,7 +4,6 @@
  */
 exports.seed = async function (knex) {
   // Deletes ALL existing entries
-  await knex("items").del();
   await knex("items").insert([
     {
       user_id: 1,
@@ -17,7 +16,7 @@ exports.seed = async function (knex) {
       product_photo: "dummy2",
     },
     {
-      user_id: 1,
+      user_id: 2,
       purchase_date: "2015-06-05",
       warranty_number: 1,
       warranty_unit: "year",
@@ -27,7 +26,7 @@ exports.seed = async function (knex) {
       product_photo: "dummy2",
     },
     {
-      user_id: 1,
+      user_id: 3,
       purchase_date: "2015-07-05",
       warranty_number: 6,
       warranty_unit: "month",
