@@ -5,7 +5,7 @@
 exports.up = function (knex) {
   return knex.schema.createTable("items", function (table) {
     table.increments("id").primary();
-    table.integer("user_id").references("items.id").notNullable();
+    table.integer("user_id").references("users.id").notNullable();
     table.date("parchase_date").notNullable();
     table.integer("warranty_number");
     table.string("warranty_unit", 32);
