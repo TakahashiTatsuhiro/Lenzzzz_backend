@@ -6,6 +6,14 @@ const cors = require("cors");
 const PORT = process.env.PORT || 3000;
 // app.use(express.json());
 
+// hash作成用関数
+const makeHash = (password, salt) => {
+  return crypto
+    .createHash("sha256")
+    .update(salt + password)
+    .digest("hex");
+};
+
 // 受信容量制限を変更
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
