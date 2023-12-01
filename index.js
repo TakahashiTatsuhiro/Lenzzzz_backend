@@ -5,6 +5,10 @@ const userInfo = require("./items");
 const cors = require("cors");
 const PORT = process.env.PORT || 3000;
 const knex = require("./knex");
+const path = require("path");
+const session = require("express-session");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
 const crypto = require("crypto");
 
 // app.use(express.json());
@@ -25,6 +29,11 @@ const url =
 app.use(cors({ origin: "http://localhost:5173" })); //Need confirm to Frontend
 // app.use(cors({ origin: "https://lenzzzz-frontend.onrender.com" })); //Need confirm to Frontend
 // app.use(cors({ origin: 'https://lenzzzz-frontend-cgi6.onrender.com' })); //Need confirm to Frontend
+
+app.use(express.urlencoded({ extended: false }));
+app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
+app.use(passport.initialize());
+app.use(passport.session());
 
 //Controllre Func : Start
 const getAllItems = async (req, res) => {
@@ -90,48 +99,133 @@ const makeHash = (password, salt) => {
   return hashedPassword;
 };
 
+const selectedUserByName = async (userName) => {
+  return await knex("users")
+    .where({ user_name: userName })
+    .select()
+    .then((data) => data);
+};
+
+const selectedUserById = async (id) => {
+  return await knex("users")
+    .where({ id: id })
+    .select()
+    .then((data) => data);
+};
+
+const verifyPassword = async (userName, password) => {
+  const userData = await selectedUserByName(userName);
+  const salt = userData[0].pw_salt;
+  const dbHashedPW = userData[0].pw_hash;
+  const hashedPassword = makeHash(password, salt);
+  return [dbHashedPW === hashedPassword, [{ id: userData[0].id }]];
+};
+
+passport.use(
+  new LocalStrategy(
+    {
+      usernameField: "user_name",
+      passwordField: "password",
+    },
+    async (userName, password, done) => {
+      try {
+        const userData = await selectedUserByName(userName);
+        if (!userData || userData.length === 0) {
+          return done(null, false, {
+            message: "ユーザー名またはパスワードが異なります",
+          });
+        }
+        const [isAuth, idArray] = await verifyPassword(userName, password);
+        if (isAuth) {
+          return done(null, userData[0]);
+        } else {
+          return done(null, false, {
+            message: "ユーザー名またはパスワードが異なります",
+          });
+        }
+      } catch (error) {
+        return done(error);
+      }
+    }
+  )
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await selectedUserById(id);
+    done(null, user);
+  } catch (error) {
+    done(error);
+  }
+});
+
+// ログイン用のエンドポイント
+app.post("/login", (req, res, next) => {
+  // req.body = [{user_name: xxx, password: xxx}]の形式なので、
+  // objectだけに抜き出してreq.bodyに上書きする
+  const firstElem = req.body[0];
+  req.body = firstElem;
+  console.log("req.body: ", req.body);
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      return res.status(500).json({ message: "Internal Server Error" });
+    }
+    if (!user) {
+      return res.status(401).json({ message: info.message });
+    }
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        return res.status(500).json({ message: "Login failed" });
+      }
+      const idArray = [{ id: user.id }];
+      return res.status(200).send(idArray);
+      // return res.status(200).json({ message: "Login successful" });
+    });
+  })(req, res, next);
+});
+
+// 認証確認ミドルウェア
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.redirect("/login");
+}
+////////////////////
+// test用
+// app.get("/", (req, res) => res.send("connect"));
+// app.get("/login", (req, res) => {
+//   res.send("/loginにアクセス"); // 適切なファイルパスに置き換える
+// });
+
+// // 認証が必要なルート
+// app.get("/protected", isAuthenticated, (req, res) => {
+//   res.send("This is a protected page");
+// });
+////////////////////
+
 //API : Start
 app.get("/:userId/items", getAllItems);
 app.get("/:userId/items/:index", getSingleItems);
 // app.get('/items/:id', userInfoFunc);
 app.post("/registrations", registrationFunc);
 
-//ログイン認証対応
-app.post("/login", async (req, res) => {
-  console.log("ログインpost受け取り-------------------");
-  //フロントフォームから届いたユーザーネームとパスワードを取得
-  const userName = req.body[0].user_name;
-  const password = req.body[0].password;
+// app.post("/login", async (req, res) => {
+//   console.log("ログインpost受け取り-------------------");
+//   //フロントフォームから届いたユーザーネームとパスワードを取得
+//   const userName = req.body[0].user_name;
+//   const password = req.body[0].password;
 
-  let result;
-  await knex("users")
-    .where({ user_name: userName })
-    .select()
-    .then((data) => {
-      result = data;
-    });
+//   // const isAuth, idArray = verifyPassword(userName, password);
+//   const [isAuth, idArray] = await verifyPassword(userName, password);
 
-  //ユーザーネームが無いケース
-  if (!result.length) {
-    res.status(400).send("ユーザーIDまたはパスワードが一致してません");
-  } else {
-    //ユーザーネーム合致ケース
-    ////DBにあるソルトとハッシュを取得
-    const salt = result[0].pw_salt;
-    const hash = result[0].pw_hash;
-    ////ユーザーがインプットしたパスワードとDBのソルトを合わせて、ハッシュ化されたパスワードを作成
-    const inputHashedPw = makeHash(password, salt);
-    ////DBにあるハッシュ化されたパスワードと、inputHashedPwを比較
-    if (hash === inputHashedPw) {
-      const loginId = await userInfo.getByUserPass(userName, hash);
-      const id = JSON.stringify(result[0].user_id);
-      console.log("🚀 ~ file: index.js:126 ~ app.post ~ id:", id);
-      res.status(200).send(loginId);
-    } else {
-      res.status(400).send("ユーザーIDまたはパスワードが一致してません");
-    }
-  }
-});
+//   if (isAuth) return res.status(200).send(idArray);
+//   res.status(400).send("ユーザーIDまたはパスワードが一致してません");
+// });
 
 //新規ユーザー登録対応
 app.post("/users/new", async (req, res) => {
