@@ -25,14 +25,9 @@ app.use((err, req, res, next) => {
 
 const url =
   process.env.DEVELOPMENT_FRONTEND_URL || process.env.PRODUCTION_FRONTEND_URL;
-// app.use(cors({ origin: url })); //Need confirm to Frontend
 app.use(cors({ origin: "http://localhost:5173", credentials: true })); //Need confirm to Frontend
-// app.use(cors({ origin: "http://localhost:5173" })); //Need confirm to Frontend
-// app.use(cors({ origin: "https://lenzzzz-frontend.onrender.com" })); //Need confirm to Frontend
-// app.use(cors({ origin: 'https://lenzzzz-frontend-cgi6.onrender.com' })); //Need confirm to Frontend
 
 app.use(express.urlencoded({ extended: false }));
-// app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
 app.use(
   session({
     secret: "secret",
@@ -40,8 +35,7 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,
-      // secure: process.env.NODE_ENV === "production", // 本番環境ではHTTPSを使用する
+      secure: process.env.NODE_ENV === "production", // 本番環境ではHTTPSを使用する
       maxAge: 24 * 60 * 60 * 1000, // クッキーの有効期限（例：24時間）
     },
   })
@@ -50,7 +44,7 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-//Controllre Func : Start
+//Controller Func : Start
 const getAllItems = async (req, res) => {
   const _userId = Number(req.params.userId);
   const info = await userInfo.getById(_userId);
