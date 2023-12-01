@@ -112,7 +112,7 @@ app.post("/login", async (req, res) => {
 
   //ユーザーネームが無いケース
   if (!result.length) {
-    res.send("ユーザーIDなし"); //再度ログイン画面に遷移させる
+    res.status(400).send("ユーザーIDまたはパスワードが一致してません");
   } else {
     //ユーザーネーム合致ケース
     ////DBにあるソルトとハッシュを取得
@@ -122,9 +122,12 @@ app.post("/login", async (req, res) => {
     const inputHashedPw = makeHash(password, salt);
     ////DBにあるハッシュ化されたパスワードと、inputHashedPwを比較
     if (hash === inputHashedPw) {
-      res.send("ログイン完了");
+      const loginId = await userInfo.getByUserPass(userName, hash);
+      const id = JSON.stringify(result[0].user_id);
+      console.log("🚀 ~ file: index.js:126 ~ app.post ~ id:", id);
+      res.status(200).send(loginId);
     } else {
-      res.send("パスワード失敗");
+      res.status(400).send("ユーザーIDまたはパスワードが一致してません");
     }
   }
 });

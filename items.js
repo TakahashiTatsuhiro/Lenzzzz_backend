@@ -25,14 +25,14 @@ const save = (data) => {
   return knex("items").insert(data);
 };
 
-const getByUserPass = (user_name, password) => {
+const getByUserPass = (user_name, hashedPassword) => {
   return knex("users")
     .select({
       id: "id",
     })
     .where({
       user_name: user_name,
-      password: password,
+      pw_hash: hashedPassword,
     });
 };
 
