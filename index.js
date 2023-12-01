@@ -138,6 +138,19 @@ app.post("/users/new", async (req, res) => {
   const userName = req.body.user_name;
   const pw = req.body.password;
 
+  //ユーザーネームが既存のものとかぶってないかをチェック
+  let checkUniqueName;
+  await knex("users")
+    .where({ user_name: userName })
+    .select()
+    .then((data) => {
+      checkUniqueName = data;
+    });
+
+  if (!checkUniqueName.length) {
+    res.status(404).send("ユーザーネームを変えてください");
+  }
+
   //新規登録するuser_idを既存のuser_idの最大から決定する
   let newId;
   await knex("users")
