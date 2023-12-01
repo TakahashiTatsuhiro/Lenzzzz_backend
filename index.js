@@ -199,6 +199,15 @@ function isAuthenticated(req, res, next) {
   res.redirect("/login");
 }
 
+app.get("/api/auth/status", (req, res) => {
+  console.log(req.user);
+  if (req.isAuthenticated() && req.user) {
+    res.status(200).json([{ id: req.user[0].id }]);
+  } else {
+    res.status(200).json([{ id: null }]);
+  }
+});
+
 //API : Start
 app.get("/:userId/items", getAllItems);
 app.get("/:userId/items/:index", getSingleItems);
