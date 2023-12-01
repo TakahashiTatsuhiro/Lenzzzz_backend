@@ -28,8 +28,6 @@ const hash2 = crypto.createHash("sha256");
 const hash3 = crypto.createHash("sha256");
 
 //上記で作成したハッシュ値で更新して、最後にdigest()で取り出す
-const check = hash1.update(salt1AndPw1);
-console.log("🚀 ~ file: 001_users.js:28 ~ check:", check);
 const hashedPassword1 = hash1.update(salt1AndPw1).digest("hex");
 const hashedPassword2 = hash2.update(salt2AndPw2).digest("hex");
 const hashedPassword3 = hash3.update(salt3AndPw3).digest("hex");

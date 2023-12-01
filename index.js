@@ -4,15 +4,10 @@ const app = express();
 const userInfo = require("./items");
 const cors = require("cors");
 const PORT = process.env.PORT || 3000;
-// app.use(express.json());
+const knex = require("./knex");
+const crypto = require("crypto");
 
-// hash作成用関数
-const makeHash = (password, salt) => {
-  return crypto
-    .createHash("sha256")
-    .update(salt + password)
-    .digest("hex");
-};
+// app.use(express.json());
 
 // 受信容量制限を変更
 app.use(bodyParser.json({ limit: "10mb" }));
@@ -86,12 +81,54 @@ const loginFunc = async (req, res) => {
 };
 //End : Controller Func
 
+// hash作成用関数
+const makeHash = (password, salt) => {
+  const saltAndPw = salt + password;
+  const hash = crypto.createHash("sha256");
+  const hashedPassword = hash.update(saltAndPw).digest("hex");
+
+  return hashedPassword;
+};
+
 //API : Start
 app.get("/:userId/items", getAllItems);
 app.get("/:userId/items/:index", getSingleItems);
 // app.get('/items/:id', userInfoFunc);
 app.post("/registrations", registrationFunc);
-app.post("/login", loginFunc);
+
+app.post("/login", async (req, res) => {
+  console.log("ログインpost受け取り-------------------");
+  //フロントフォームから届いたユーザーネームとパスワードを取得
+  const userName = req.body[0].user_name;
+  const password = req.body[0].password;
+
+  let result;
+  await knex("users")
+    .where({ user_name: userName })
+    .select()
+    .then((data) => {
+      result = data;
+    });
+
+  //ユーザーネームが無いケース
+  if (!result.length) {
+    res.send("ユーザーIDなし"); //再度ログイン画面に遷移させる
+  } else {
+    //ユーザーネーム合致ケース
+    ////DBにあるソルトとハッシュを取得
+    const salt = result[0].pw_salt;
+    const hash = result[0].pw_hash;
+    ////ユーザーがインプットしたパスワードとDBのソルトを合わせて、ハッシュ化されたパスワードを作成
+    const inputHashedPw = makeHash(password, salt);
+    ////DBにあるハッシュ化されたパスワードと、inputHashedPwを比較
+    if (hash === inputHashedPw) {
+      res.send("ログイン完了");
+    } else {
+      res.send("パスワード失敗");
+    }
+  }
+});
+
 //End : API
 
 app.listen(PORT, () => {
