@@ -68,17 +68,17 @@ const registrationFunc = async (req, res) => {
   res.status(201).send("追加しました");
 };
 
-const loginFunc = async (req, res) => {
-  const { user_name, password } = req.body;
-  // console.log("req::::::", req)
-  // console.log('bodyより受信', user_name, password);
-  const loginId = await userInfo.getByUserPass(user_name, password);
-  if (!loginId) {
-    res.status(400).send("NG");
-  } else {
-    res.status(200).send(loginId);
-  }
-};
+// const loginFunc = async (req, res) => {
+//   const { user_name, password } = req.body;
+//   // console.log("req::::::", req)
+//   // console.log('bodyより受信', user_name, password);
+//   const loginId = await userInfo.getByUserPass(user_name, password);
+//   if (!loginId) {
+//     res.status(400).send("NG");
+//   } else {
+//     res.status(200).send(loginId);
+//   }
+// };
 //End : Controller Func
 
 // hash作成用関数
@@ -96,6 +96,7 @@ app.get("/:userId/items/:index", getSingleItems);
 // app.get('/items/:id', userInfoFunc);
 app.post("/registrations", registrationFunc);
 
+//ログイン認証対応
 app.post("/login", async (req, res) => {
   console.log("ログインpost受け取り-------------------");
   //フロントフォームから届いたユーザーネームとパスワードを取得
@@ -132,6 +133,41 @@ app.post("/login", async (req, res) => {
   }
 });
 
+//新規ユーザー登録対応
+app.post("/users/new", async (req, res) => {
+  const userName = req.body.user_name;
+  const pw = req.body.password;
+
+  //新規登録するuser_idを既存のuser_idの最大から決定する
+  let newId;
+  await knex("users")
+    .max("user_id as maxId")
+    .then(([result]) => {
+      newId = result.maxId + 1;
+      return;
+    });
+
+  //パスワードのソルトを作成
+  const salt = crypto.randomBytes(6).toString("hex");
+  //ソルトをパスワードに付け加える
+  const saltAndPw = salt + pw;
+  //SHA-256を使って、ハッシュ・オブジェクトを作成
+  const hash = crypto.createHash("sha256");
+  //上記で作成したハッシュ値で更新して、最後にdigest()で取り出す
+  const hashedPassword = hash.update(saltAndPw).digest("hex");
+
+  //新規ユーザーをusersテーブルに登録する
+  await knex("users").insert({
+    user_name: userName,
+    user_id: newId,
+    pw_hash: hashedPassword,
+    pw_salt: salt,
+  });
+
+  //フロントに返すためにidを文字列化
+  const idToFront = JSON.stringify(newId);
+  res.status(200).send(idToFront);
+});
 //End : API
 
 app.listen(PORT, () => {
