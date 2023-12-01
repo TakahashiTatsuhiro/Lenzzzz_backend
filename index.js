@@ -147,39 +147,39 @@ app.post("/users/new", async (req, res) => {
       checkUniqueName = data;
     });
 
-  if (!checkUniqueName.length) {
+  if (checkUniqueName.length) {
     res.status(404).send("ユーザーネームを変えてください");
-  }
+  } else {
+    //新規登録するuser_idを既存のuser_idの最大から決定する
+    let newId;
+    await knex("users")
+      .max("user_id as maxId")
+      .then(([result]) => {
+        newId = result.maxId + 1;
+        return;
+      });
 
-  //新規登録するuser_idを既存のuser_idの最大から決定する
-  let newId;
-  await knex("users")
-    .max("user_id as maxId")
-    .then(([result]) => {
-      newId = result.maxId + 1;
-      return;
+    //パスワードのソルトを作成
+    const salt = crypto.randomBytes(6).toString("hex");
+    //ソルトをパスワードに付け加える
+    const saltAndPw = salt + pw;
+    //SHA-256を使って、ハッシュ・オブジェクトを作成
+    const hash = crypto.createHash("sha256");
+    //上記で作成したハッシュ値で更新して、最後にdigest()で取り出す
+    const hashedPassword = hash.update(saltAndPw).digest("hex");
+
+    //新規ユーザーをusersテーブルに登録する
+    await knex("users").insert({
+      user_name: userName,
+      user_id: newId,
+      pw_hash: hashedPassword,
+      pw_salt: salt,
     });
 
-  //パスワードのソルトを作成
-  const salt = crypto.randomBytes(6).toString("hex");
-  //ソルトをパスワードに付け加える
-  const saltAndPw = salt + pw;
-  //SHA-256を使って、ハッシュ・オブジェクトを作成
-  const hash = crypto.createHash("sha256");
-  //上記で作成したハッシュ値で更新して、最後にdigest()で取り出す
-  const hashedPassword = hash.update(saltAndPw).digest("hex");
-
-  //新規ユーザーをusersテーブルに登録する
-  await knex("users").insert({
-    user_name: userName,
-    user_id: newId,
-    pw_hash: hashedPassword,
-    pw_salt: salt,
-  });
-
-  //フロントに返すためにidを文字列化
-  const idToFront = JSON.stringify(newId);
-  res.status(200).send(idToFront);
+    //フロントに返すためにidを文字列化
+    const idToFront = JSON.stringify(newId);
+    res.status(200).send(idToFront);
+  }
 });
 //End : API
 
