@@ -26,12 +26,27 @@ app.use((err, req, res, next) => {
 const url =
   process.env.DEVELOPMENT_FRONTEND_URL || process.env.PRODUCTION_FRONTEND_URL;
 // app.use(cors({ origin: url })); //Need confirm to Frontend
-app.use(cors({ origin: "http://localhost:5173" })); //Need confirm to Frontend
+app.use(cors({ origin: "http://localhost:5173", credentials: true })); //Need confirm to Frontend
+// app.use(cors({ origin: "http://localhost:5173" })); //Need confirm to Frontend
 // app.use(cors({ origin: "https://lenzzzz-frontend.onrender.com" })); //Need confirm to Frontend
 // app.use(cors({ origin: 'https://lenzzzz-frontend-cgi6.onrender.com' })); //Need confirm to Frontend
 
 app.use(express.urlencoded({ extended: false }));
-app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
+// app.use(session({ secret: "secret", resave: false, saveUninitialized: false }));
+app.use(
+  session({
+    secret: "secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: false,
+      // secure: process.env.NODE_ENV === "production", // 本番環境ではHTTPSを使用する
+      maxAge: 24 * 60 * 60 * 1000, // クッキーの有効期限（例：24時間）
+    },
+  })
+);
+
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -76,18 +91,6 @@ const registrationFunc = async (req, res) => {
 
   res.status(201).send("追加しました");
 };
-
-// const loginFunc = async (req, res) => {
-//   const { user_name, password } = req.body;
-//   // console.log("req::::::", req)
-//   // console.log('bodyより受信', user_name, password);
-//   const loginId = await userInfo.getByUserPass(user_name, password);
-//   if (!loginId) {
-//     res.status(400).send("NG");
-//   } else {
-//     res.status(200).send(loginId);
-//   }
-// };
 //End : Controller Func
 
 // hash作成用関数
@@ -195,37 +198,11 @@ function isAuthenticated(req, res, next) {
   }
   res.redirect("/login");
 }
-////////////////////
-// test用
-// app.get("/", (req, res) => res.send("connect"));
-// app.get("/login", (req, res) => {
-//   res.send("/loginにアクセス"); // 適切なファイルパスに置き換える
-// });
-
-// // 認証が必要なルート
-// app.get("/protected", isAuthenticated, (req, res) => {
-//   res.send("This is a protected page");
-// });
-////////////////////
 
 //API : Start
 app.get("/:userId/items", getAllItems);
 app.get("/:userId/items/:index", getSingleItems);
-// app.get('/items/:id', userInfoFunc);
 app.post("/registrations", registrationFunc);
-
-// app.post("/login", async (req, res) => {
-//   console.log("ログインpost受け取り-------------------");
-//   //フロントフォームから届いたユーザーネームとパスワードを取得
-//   const userName = req.body[0].user_name;
-//   const password = req.body[0].password;
-
-//   // const isAuth, idArray = verifyPassword(userName, password);
-//   const [isAuth, idArray] = await verifyPassword(userName, password);
-
-//   if (isAuth) return res.status(200).send(idArray);
-//   res.status(400).send("ユーザーIDまたはパスワードが一致してません");
-// });
 
 //新規ユーザー登録対応
 app.post("/users/new", async (req, res) => {
