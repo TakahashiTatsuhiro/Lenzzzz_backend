@@ -166,7 +166,7 @@ app.post("/login", (req, res, next) => {
   // objectだけに抜き出してreq.bodyに上書きする
   const firstElem = req.body[0];
   req.body = firstElem;
-  console.log("req.body: ", req.body);
+  // console.log("req.body: ", req.body);
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       return res.status(500).json({ message: "Internal Server Error" });
@@ -185,20 +185,15 @@ app.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
-// 認証確認ミドルウェア
-function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect("/login");
-}
-
-app.get("/api/auth/status", (req, res) => {
-  console.log(req.user);
+app.get("/", (req, res) => {
+  // console.log("req.isAuthenticated()", req.isAuthenticated());
+  // console.log(req.user);
   if (req.isAuthenticated() && req.user) {
     res.status(200).json([{ id: req.user[0].id }]);
   } else {
-    res.status(200).json([{ id: null }]);
+    // res.status(200).json([{ id: null }]);
+    // console.log("cokkieないよ。リダイレクトしてね。");
+    res.redirect("/login");
   }
 });
 
